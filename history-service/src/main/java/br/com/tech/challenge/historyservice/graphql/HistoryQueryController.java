@@ -32,6 +32,14 @@ public class HistoryQueryController {
     }
 
     @QueryMapping
+    @PreAuthorize("hasAnyRole('DOCTOR', 'NURSE', 'PATIENT')")
+    public List<MedicalRecordResponse> patientHistoryByEmail(
+            @Argument String patientEmail,
+            Authentication authentication) {
+        return queryService.patientHistoryByEmail(patientEmail, authentication);
+    }
+
+    @QueryMapping
     @PreAuthorize("hasAnyRole('DOCTOR', 'NURSE')")
     public List<MedicalRecordResponse> appointmentTimeline(@Argument Long appointmentId) {
         return queryService.appointmentTimeline(appointmentId);
