@@ -13,6 +13,7 @@ LOGIN_EMAIL="${LOGIN_EMAIL:-maria.santos@hospital.com}"
 LOGIN_SENHA="${LOGIN_SENHA:-Enfermeira@123}"
 # 4 e o user_id do paciente de exemplo (lucas.oliveira@hospital.com)
 PATIENT_ID="${PATIENT_ID:-4}"
+PATIENT_EMAIL="${PATIENT_EMAIL:-lucas.oliveira@hospital.com}"
 APPOINTMENT_DATE=$(date -u -d '+30 days' '+%Y-%m-%dT%H:%M:%S' 2>/dev/null || date -u -v+30d '+%Y-%m-%dT%H:%M:%S')
 
 echo "==> 1/5 aguardando os servicos responderem"
@@ -83,7 +84,8 @@ done
 echo "==> 5/5 aguardando a notificacao ser enviada pelo notification-service"
 fim=$(( SECONDS + TIMEOUT_SEGUNDOS ))
 while true; do
-  notificacoes=$(curl -sf -H "$AUTH_HEADER" "$NOTIFICATION_URL/notifications/patient/$PATIENT_ID" || echo '')
+  notificacoes=$(curl -sf -G -H "$AUTH_HEADER" "$NOTIFICATION_URL/notifications" \
+    --data-urlencode "patientEmail=$PATIENT_EMAIL" || echo '')
   if echo "$notificacoes" | grep -q "\"appointmentId\":$APPOINTMENT_ID,[^}]*\"status\":\"SENT\""; then
     echo "    OK notificacao enviada para o agendamento $APPOINTMENT_ID"
     echo

@@ -48,10 +48,16 @@ evento = {
     "eventStatus": os.environ["EVENT_STATUS"],
     "occurredAt": os.environ["OCCURRED_AT"],
     "appointmentId": int(os.environ["APPOINTMENT_ID"]),
-    "patientId": int(os.environ["PATIENT_ID"]),
-    "patientName": "Maria Souza",
-    "doctorId": 7,
-    "doctorName": "Dr. Joao Lima",
+    "patient": {
+        "id": int(os.environ["PATIENT_ID"]),
+        "email": "maria.souza@email.com",
+        "name": "Maria Souza",
+    },
+    "doctor": {
+        "id": 7,
+        "email": "joao.lima@hospital.com",
+        "name": "Dr. Joao Lima",
+    },
     "appointmentDate": os.environ["APPOINTMENT_DATE"],
     "description": "Consulta de rotina",
 }
