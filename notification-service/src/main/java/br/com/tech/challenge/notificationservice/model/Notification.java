@@ -32,6 +32,12 @@ public class Notification {
     @Column(name = "patient_id", nullable = false)
     private Long patientId;
 
+    @Column(name = "patient_email", nullable = false)
+    private String patientEmail;
+
+    @Column(name = "patient_name", nullable = false)
+    private String patientName;
+
     @Column(nullable = false)
     private String message;
 

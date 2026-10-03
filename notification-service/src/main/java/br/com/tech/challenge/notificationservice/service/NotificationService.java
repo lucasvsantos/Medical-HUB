@@ -106,7 +106,9 @@ public class NotificationService {
         notification.setEventId(event.eventId());
         notification.setEventStatus(event.eventStatus());
         notification.setAppointmentId(event.appointmentId());
-        notification.setPatientId(event.patientId());
+        notification.setPatientId(event.patient().id());
+        notification.setPatientEmail(event.patient().email());
+        notification.setPatientName(event.patient().name());
         notification.setMessage(createMessage(event));
         notification.setCreatedAt(LocalDateTime.now());
         notification.setStatus(NotificationStatus.PENDING);
@@ -129,5 +131,13 @@ public class NotificationService {
 
     public List<Notification> findByPatientId(Long patientId) {
         return notificationRepository.findByPatientId(patientId);
+    }
+
+    public List<Notification> findByPatientEmail(String patientEmail) {
+        return notificationRepository.findByPatientEmail(patientEmail);
+    }
+
+    public List<Notification> findByPatientEmailAndPatientId(String patientEmail, Long patientId) {
+        return notificationRepository.findByPatientEmailAndPatientId(patientEmail, patientId);
     }
 }
