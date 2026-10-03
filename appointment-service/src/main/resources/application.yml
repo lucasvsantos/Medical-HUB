@@ -35,6 +35,12 @@ server:
   port: ${SERVER_PORT:8080}
 
 app:
+  auth:
+    base-url: ${AUTH_SERVICE_URL:https://localhost:9443}
+    key-store: ${AUTH_MTLS_KEYSTORE:file:../.mtls/appointment-client.p12}
+    key-store-password: ${AUTH_MTLS_KEYSTORE_PASSWORD:changeit}
+    trust-store: ${AUTH_MTLS_TRUSTSTORE:file:../.mtls/ca-truststore.p12}
+    trust-store-password: ${AUTH_MTLS_TRUSTSTORE_PASSWORD:changeit}
   rabbitmq:
     appointment-exchange: ${RABBITMQ_EXCHANGE:appointment.exchange}
     history-routing-key: ${RABBITMQ_HISTORY_ROUTING_KEY:history.created}

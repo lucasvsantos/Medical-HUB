@@ -3,6 +3,8 @@
 Backend do Tech Challenge FIAP — Fase 3 — Grupo 65: agendamento de consultas com autenticação JWT,
 histórico em GraphQL e notificações, integrados por RabbitMQ.
 
+O painel web está em [`web-panel`](web-panel/README.md) e utiliza React, TypeScript, Vite e Ant Design.
+
 | Serviço | Papel | App | Postgres |
 |---|---|---|---|
 | auth-service | login e emissão do JWT, cadastro de usuários | 8083 | 5435 |
@@ -22,6 +24,18 @@ histórico em GraphQL e notificações, integrados por RabbitMQ.
 
 As portas da tabela acima precisam estar livres. Um PostgreSQL instalado localmente costuma ocupar a 5432.
 
+## Painel web
+
+Com os serviços em execução, abra outro terminal e execute:
+
+```bash
+cd web-panel
+npm install
+npm run dev
+```
+
+Acesse `http://localhost:5173`. O painel usa o proxy do Vite para os quatro serviços e guarda somente o JWT no `sessionStorage`; a renovação automática usa as credenciais apenas enquanto a aba permanece aberta.
+
 ## Início rápido
 
 ### Linux, macOS ou WSL2
@@ -30,6 +44,7 @@ As portas da tabela acima precisam estar livres. Um PostgreSQL instalado localme
 git clone https://github.com/LucasPavao/tech_challenger_3_grupo65
 cd tech_challenger_3_grupo65
 make setup   # cria os .env que faltam a partir dos .env.example
+make mtls    # gera os certificados mTLS locais em .mtls/
 make build   # constrói as imagens e sobe tudo
 make ps      # espere os 9 containers ficarem healthy
 make smoke   # teste ponta a ponta com login
@@ -47,6 +62,9 @@ Get-ChildItem -Path . -Filter .env.example -Recurse -Depth 1 -Force | ForEach-Ob
   if (-not (Test-Path $destino)) { Copy-Item $_.FullName $destino; "criado $destino" }
 }
 
+# gera a CA e os certificados mTLS locais em .mtls/
+.\scripts\generate-mtls-certs.ps1
+
 docker compose up -d --build
 docker compose ps   # espere os 9 containers ficarem healthy
 ```
@@ -58,6 +76,20 @@ quatro serviços. As seguintes reaproveitam o cache.
 
 Na primeira subida, o serviço `jwt-keys` gera o par de chaves do JWT em `.jwt-keys/` e termina
 (aparece como `exited (0)` — é o esperado). As subidas seguintes reaproveitam o mesmo par.
+
+Antes da primeira subida, o comando `make mtls` ou o script PowerShell gera os certificados mTLS
+em `.mtls/`. A pasta é ignorada pelo Git. O certificado do `auth-service` é usado na porta interna
+HTTPS `9443`, e o `appointment-service` usa seu certificado cliente para consultar os usuários.
+Se `.mtls/` for removida ou os certificados expirarem, gere um novo conjunto antes de subir as
+aplicações.
+
+Para regenerar o conjunto local, remova a pasta `.mtls/`, rode novamente `make mtls` ou o script
+PowerShell e reinicie as aplicações. Os certificados antigos deixarão de ser aceitos.
+
+Em um deploy, não use os certificados de desenvolvimento. A autoridade responsável pelo ambiente
+deve fornecer o certificado do servidor do auth-service, o certificado cliente do
+appointment-service e a cadeia da CA em um volume ou secret manager. Configure os caminhos e as
+senhas pelas variáveis `MTLS_*` e `AUTH_MTLS_*` dos serviços.
 
 Sobre os `.env`:
 
@@ -94,7 +126,7 @@ Os mesmos passos com `curl`, para Linux, macOS e WSL2. No PowerShell, o login e 
 ```powershell
 $basic = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('maria.santos@hospital.com:Enfermeira@123'))
 $token = (Invoke-RestMethod -Method Post -Uri http://localhost:8083/auth/login -Headers @{ Authorization = "Basic $basic" }).access_token
-Invoke-RestMethod -Uri http://localhost:8082/notifications/patient/4 -Headers @{ Authorization = "Bearer $token" }
+Invoke-RestMethod -Uri "http://localhost:8082/notifications?patientEmail=lucas.oliveira@hospital.com" -Headers @{ Authorization = "Bearer $token" }
 ```
 
 Os passos abaixo usam `curl`:
@@ -141,7 +173,9 @@ da collection.
 ### 4. Listar as notificações
 
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8082/notifications/patient/4
+curl -s -G http://localhost:8082/notifications \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-urlencode "patientEmail=lucas.oliveira@hospital.com"
 ```
 
 Uma notificação por evento do agendamento, com `status` `SENT`.
@@ -160,6 +194,7 @@ define uma vez o RabbitMQ e o `jwt-keys`.
 | Peça | Como funciona |
 |---|---|
 | `jwt-keys` | container Alpine que gera `.jwt-keys/app.key` e `app.sub` se não existirem e termina. Os apps esperam ele concluir |
+| mTLS | `scripts/generate-mtls-certs.sh` ou `.ps1` gera uma CA local, o certificado do `auth-service` e o certificado cliente do `appointment-service` em `.mtls/` |
 | auth-service | lê a chave privada e a pública de `/keys` e assina o token |
 | appointment, history, notification | montam `/keys` só leitura e validam o token com a chave pública e o emissor `auth-service` |
 | RabbitMQ | exchange única `appointment.exchange`; cada consumidor declara a própria fila e DLQ |
@@ -167,13 +202,14 @@ define uma vez o RabbitMQ e o `jwt-keys`.
 | Comando | O que faz |
 |---|---|
 | `make setup` | cria os `.env` que faltam |
+| `make mtls` | gera os certificados mTLS locais que não existem |
 | `make up` / `make build` | sobe tudo (`build` reconstrói as imagens) |
 | `make infra` | sobe só bancos, RabbitMQ e `jwt-keys`, para rodar as apps pela IDE |
 | `make smoke` | teste ponta a ponta com login |
 | `make logs` / `make ps` | logs e estado |
 | `make down` / `make clean` | derruba tudo (`clean` também apaga os volumes dos bancos) |
 
-Sem `make`, o equivalente é `docker compose up -d --build`, `COMPOSE_PROFILES= docker compose up -d`
+Sem `make`, gere os certificados com `sh ./scripts/generate-mtls-certs.sh` (ou `scripts\generate-mtls-certs.ps1` no PowerShell) e use `docker compose up -d --build`, `COMPOSE_PROFILES= docker compose up -d`
 (só infra), `docker compose logs -f`, `docker compose ps` e `docker compose down`.
 
 **Cuidado:** todos os serviços formam um único projeto Compose (`name: grupo65`): `docker compose down`
@@ -211,6 +247,8 @@ Para regenerar o par de chaves: `docker run --rm -v "$(pwd)/.jwt-keys:/keys" alp
 | `failed to bind host port ... address already in use` | outra aplicação na porta | parar o processo, ou trocar `DB_PORT`/`SERVER_PORT` no `.env` do serviço |
 | `make: command not found` | Windows fora do WSL2 | usar os comandos `docker compose` do [Início rápido](#início-rápido) |
 | erro sobre `include` | Compose anterior à 2.20, ou `docker-compose` v1 | atualizar o Docker |
+| `auth-app` não sobe por erro de keystore | certificados mTLS ausentes ou expirados | rodar `make mtls` ou `scripts\generate-mtls-certs.ps1` antes do Compose |
+| appointment não consegue consultar usuários | certificados mTLS incompatíveis, CA diferente ou `auth-app:9443` indisponível | conferir `.mtls/`, as variáveis `AUTH_MTLS_*` e os logs dos dois serviços |
 | alterações de código não aparecem | `make up` reaproveita as imagens | `make build` |
 | agendamento criado, nada no histórico nem nas notificações | `.env` antigo com outra exchange, ou evento publicado antes de os consumidores subirem | [Atualizando de uma versão anterior](#atualizando-de-uma-versão-anterior) |
 | `PRECONDITION_FAILED - inequivalent arg 'x-dead-letter-exchange'` | fila criada por uma versão anterior | [Atualizando de uma versão anterior](#atualizando-de-uma-versão-anterior) |

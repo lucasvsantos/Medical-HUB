@@ -1,6 +1,8 @@
 type Query {
     "Ultimo evento de cada consulta do paciente, da mais recente para a mais antiga."
     patientHistory(patientId: ID!): [MedicalRecord!]!
+    "Ultimo evento de cada consulta do paciente identificado pelo e-mail."
+    patientHistoryByEmail(patientEmail: String!): [MedicalRecord!]!
     "Trilha completa de uma consulta, do evento mais antigo ao mais recente."
     appointmentTimeline(appointmentId: ID!): [MedicalRecord!]!
 }
@@ -14,8 +16,10 @@ type MedicalRecord {
     id: ID!
     appointmentId: ID!
     patientId: ID!
+    patientEmail: String
     patientName: String
     doctorId: ID!
+    doctorEmail: String
     doctorName: String
     description: String
     "Inicio da consulta neste evento, ISO-8601 sem timezone. Ex: 2026-09-05T09:00:00"

@@ -44,6 +44,24 @@ public class MedicalHistoryQueryService {
                 .toList();
     }
 
+    public List<MedicalRecordResponse> patientHistoryByEmail(
+            String patientEmail,
+            Authentication authentication) {
+        if (patientEmail == null || patientEmail.isBlank()) {
+            throw new IllegalArgumentException("patientEmail cannot be blank");
+        }
+
+        Long authenticatedPatientId = checkPatientEmailAccess(authentication, patientEmail);
+        var records = authenticatedPatientId == null
+                ? repository.findLatestEventPerAppointmentByPatientEmail(patientEmail)
+                : repository.findLatestEventPerAppointmentByPatientEmailAndPatientId(
+                        patientEmail, authenticatedPatientId);
+
+        return records.stream()
+                .map(MedicalRecordResponse::from)
+                .toList();
+    }
+
     /**
      * Trilha completa de uma consulta, do evento mais antigo ao mais recente. E o que o log
      * append-only oferece e uma tabela de estado nao: a data anterior de uma consulta remarcada
@@ -67,5 +85,18 @@ public class MedicalHistoryQueryService {
                 throw new AccessDeniedException("Patient cannot access other patient appointment");
             }
         }
+    }
+
+    private Long checkPatientEmailAccess(Authentication authentication, String patientEmail) {
+        if (authentication instanceof JwtAuthenticationToken jwt
+                && jwt.getAuthorities().stream().anyMatch(a -> Objects.equals(a.getAuthority(), "ROLE_PATIENT"))) {
+            String subject = jwt.getToken().getSubject();
+            Number userId = jwt.getToken().getClaim("user_id");
+            if (subject == null || userId == null || !subject.equalsIgnoreCase(patientEmail)) {
+                throw new AccessDeniedException("Patient cannot access another patient's history");
+            }
+            return userId.longValue();
+        }
+        return null;
     }
 }

@@ -1,4 +1,4 @@
-name: grupo65
+name: medical-hub
 
 # Requer os .env dos servicos — rode 'make setup' antes do primeiro uso.
 include:
@@ -10,3 +10,9 @@ include:
     env_file: ./notification-service/.env
   - path: ./auth-service/docker-compose.yml
     env_file: ./auth-service/.env
+
+services:
+  appointment-app:
+    depends_on:
+      auth-app:
+        condition: service_healthy

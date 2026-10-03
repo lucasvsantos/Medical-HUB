@@ -36,8 +36,13 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       JWT_PUBLIC_KEY: file:/tmp/app.sub
+      AUTH_SERVICE_URL: https://auth-app:9443
+      AUTH_MTLS_KEYSTORE: file:/mtls/appointment-client.p12
+      AUTH_MTLS_TRUSTSTORE: file:/mtls/ca-truststore.p12
     volumes:
       - ../.jwt-keys/app.sub:/tmp/app.sub:ro
+      - ../.mtls/appointment-client.p12:/mtls/appointment-client.p12:ro
+      - ../.mtls/ca-truststore.p12:/mtls/ca-truststore.p12:ro
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
     networks:

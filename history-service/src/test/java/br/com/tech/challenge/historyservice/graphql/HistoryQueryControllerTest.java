@@ -28,16 +28,16 @@ class HistoryQueryControllerTest {
     @MockitoBean
     private MedicalHistoryQueryService queryService;
 
-    private MedicalRecordResponse resposta(String appointmentId, AppointmentEventStatus eventStatus) {
-        return new MedicalRecordResponse("1", appointmentId, "10", "Maria Souza", "7",
-                "Dr. Joao Lima", "Consulta de rotina", "2026-09-05T09:00:00",
+    private MedicalRecordResponse resposta(AppointmentEventStatus eventStatus) {
+        return new MedicalRecordResponse("1", "42", "10", "maria.souza@email.com", "Maria Souza", "7",
+                "joao.lima@hospital.com", "Dr. Joao Lima", "Consulta de rotina", "2026-09-05T09:00:00",
                 eventStatus, "2026-08-30T14:32:10Z");
     }
 
     @Test
     void patientHistoryDevolveOsCamposDoRegistro() {
         when(queryService.patientHistory(eq(10L), any()))
-                .thenReturn(List.of(resposta("42", AppointmentEventStatus.COMPLETED)));
+                .thenReturn(List.of(resposta(AppointmentEventStatus.COMPLETED)));
 
         graphQlTester.document("""
                         query {
@@ -84,7 +84,7 @@ class HistoryQueryControllerTest {
     @Test
     void devolveApenasOsCamposPedidos() {
         when(queryService.patientHistory(eq(10L), any()))
-                .thenReturn(List.of(resposta("42", AppointmentEventStatus.SCHEDULED)));
+                .thenReturn(List.of(resposta(AppointmentEventStatus.SCHEDULED)));
 
         graphQlTester.document("{ patientHistory(patientId: 10) { appointmentId } }")
                 .execute()
@@ -95,9 +95,9 @@ class HistoryQueryControllerTest {
     @Test
     void appointmentTimelineDevolveATrilhaDaConsulta() {
         when(queryService.appointmentTimeline(42L)).thenReturn(List.of(
-                resposta("42", AppointmentEventStatus.SCHEDULED),
-                resposta("42", AppointmentEventStatus.RESCHEDULED),
-                resposta("42", AppointmentEventStatus.COMPLETED)));
+                resposta(AppointmentEventStatus.SCHEDULED),
+                resposta(AppointmentEventStatus.RESCHEDULED),
+                resposta(AppointmentEventStatus.COMPLETED)));
 
         graphQlTester.document("""
                         query {

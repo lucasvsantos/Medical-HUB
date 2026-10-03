@@ -1,4 +1,4 @@
-.PHONY: setup up build infra down clean logs ps smoke
+.PHONY: setup mtls up build infra down clean logs ps smoke
 
 ENVS := $(patsubst %.example,%,$(wildcard .env.example */.env.example))
 
@@ -8,13 +8,16 @@ setup: ## Cria os .env que ainda nao existem, a partir dos .env.example
 		else echo "mantido $$f"; fi; \
 	done
 
-up: setup ## Sobe tudo (bancos, broker e aplicacoes)
+mtls: ## Gera os certificados mTLS locais em .mtls/
+	sh ./scripts/generate-mtls-certs.sh
+
+up: setup mtls ## Sobe tudo (bancos, broker e aplicacoes)
 	docker compose up -d
 
-build: setup ## Sobe tudo reconstruindo as imagens
+build: setup mtls ## Sobe tudo reconstruindo as imagens
 	docker compose up -d --build
 
-infra: setup ## Sobe apenas os bancos e o RabbitMQ (para rodar as apps pela IDE)
+infra: setup mtls ## Sobe apenas os bancos e o RabbitMQ (para rodar as apps pela IDE)
 	COMPOSE_PROFILES= docker compose up -d
 
 down: ## Derruba tudo, preservando os volumes

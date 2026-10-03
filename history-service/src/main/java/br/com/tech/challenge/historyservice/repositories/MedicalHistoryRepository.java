@@ -42,4 +42,30 @@ public interface MedicalHistoryRepository extends JpaRepository<MedicalHistory, 
             ORDER BY ultimo.occurred_at DESC, ultimo.id DESC
             """, nativeQuery = true)
     List<MedicalHistory> findLatestEventPerAppointment(@Param("patientId") Long patientId);
+
+    @Query(value = """
+            SELECT * FROM (
+                SELECT DISTINCT ON (appointment_id) *
+                FROM medical_history
+                WHERE patient_email = :patientEmail
+                ORDER BY appointment_id, occurred_at DESC, id DESC
+            ) AS ultimo
+            ORDER BY ultimo.occurred_at DESC, ultimo.id DESC
+            """, nativeQuery = true)
+    List<MedicalHistory> findLatestEventPerAppointmentByPatientEmail(
+            @Param("patientEmail") String patientEmail);
+
+    @Query(value = """
+            SELECT * FROM (
+                SELECT DISTINCT ON (appointment_id) *
+                FROM medical_history
+                WHERE patient_email = :patientEmail
+                  AND patient_id = :patientId
+                ORDER BY appointment_id, occurred_at DESC, id DESC
+            ) AS ultimo
+            ORDER BY ultimo.occurred_at DESC, ultimo.id DESC
+            """, nativeQuery = true)
+    List<MedicalHistory> findLatestEventPerAppointmentByPatientEmailAndPatientId(
+            @Param("patientEmail") String patientEmail,
+            @Param("patientId") Long patientId);
 }

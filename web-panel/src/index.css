@@ -1,0 +1,47 @@
+:root {
+  color: #102a43;
+  background: #f4f7fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: #f4f7fb; }
+button, input { font: inherit; }
+
+.app-shell { min-height: 100vh; }
+.app-sider { border-right: 1px solid #e8eef5; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 22px 20px 28px; color: #102a43; }
+.brand > div:last-child { display: flex; flex-direction: column; gap: 2px; }
+.brand span { color: #829ab1; font-size: 11px; }
+.brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: #fff; background: linear-gradient(145deg, #1677ff, #0958d9); font-size: 21px; box-shadow: 0 8px 18px rgb(22 119 255 / 25%); }
+.brand-mark.large { width: 54px; height: 54px; margin: 0 auto; font-size: 28px; }
+.app-header { height: 72px; line-height: normal; padding: 0 32px; display: flex; justify-content: space-between; align-items: center; background: #fff; border-bottom: 1px solid #e8eef5; }
+.header-title { color: #627d98; }
+.user-summary { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.user-summary strong { font-size: 12px; }
+.user-summary .ant-tag { margin: 0; font-size: 10px; line-height: 17px; }
+.app-content { padding: 32px; max-width: 1500px; width: 100%; margin: 0 auto; }
+.page-heading { margin-bottom: 24px; }
+.page-heading .ant-typography { margin-bottom: 4px; }
+.page-heading .ant-breadcrumb { margin-bottom: 12px; }
+.page-toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+.content-table, .search-card { margin-bottom: 20px; }
+.search-card { border: 0; box-shadow: 0 4px 20px rgb(16 42 67 / 5%); }
+.muted { color: #829ab1; }
+
+.login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 15% 15%, #dcecff 0, transparent 35%), #f4f7fb; }
+.login-card { width: min(100%, 430px); box-shadow: 0 18px 50px rgb(16 42 67 / 12%); }
+.login-brand { text-align: center; margin-bottom: 28px; }
+.login-brand .ant-typography { margin: 16px 0 0; }
+.login-brand .ant-typography + .ant-typography { display: block; margin-top: 4px; }
+.login-form { margin-top: 24px; }
+
+@media (max-width: 650px) {
+  .app-content { padding: 20px 14px; }
+  .app-header { padding: 0 16px; }
+  .header-title { display: none; }
+  .user-summary { display: none; }
+  .search-card .ant-form { display: flex; flex-direction: column; align-items: stretch; }
+  .search-card .ant-form-item { margin-inline-end: 0; }
+}

@@ -23,6 +23,29 @@ query {
 }
 ```
 
+## `patientHistoryByEmail(patientEmail: String!)`
+
+Retorna o estado mais recente de cada consulta encontrada pelo e-mail do paciente:
+
+```graphql
+query {
+  patientHistoryByEmail(patientEmail: "lucas.oliveira@hospital.com") {
+    appointmentId
+    patientId
+    patientEmail
+    patientName
+    doctorId
+    doctorEmail
+    doctorName
+    eventStatus
+    appointmentDate
+  }
+}
+```
+
+PATIENT só pode consultar o e-mail que corresponde ao `sub` do próprio JWT. DOCTOR e NURSE podem
+consultar qualquer paciente.
+
 ```json
 {
   "data": {
@@ -78,8 +101,10 @@ Repare que a data original (5/set) continua visível na primeira linha depois da
 | `id` | `ID!` | identificador da **linha do histórico**, não da consulta |
 | `appointmentId` | `ID!` | agrupa a trilha |
 | `patientId` | `ID!` | |
+| `patientEmail` | `String` | snapshot do evento |
 | `patientName` | `String` | snapshot do evento; pode ser `null` |
 | `doctorId` | `ID!` | |
+| `doctorEmail` | `String` | snapshot do evento |
 | `doctorName` | `String` | snapshot do evento; pode ser `null` |
 | `description` | `String` | pode ser `null` |
 | `appointmentDate` | `String!` | início da consulta neste evento, ISO-8601 sem timezone |
@@ -107,8 +132,7 @@ curl -s -X POST http://localhost:8081/graphql \
 | Campo inexistente na query | `errors[0].extensions.classification` = `ValidationError` |
 | Argumento rejeitado pelo service | `errors[0].extensions.classification` = `BAD_REQUEST` |
 
-## Ainda não implementado
+## Autorização
 
-Autorização por role (`PATIENT` só acessa o próprio `patientId`; `DOCTOR`/`NURSE` acessam
-qualquer um) entra quando a Pessoa 1 publicar o formato do JWT. Hoje o endpoint está aberto —
-apropriado só para ambiente local.
+As duas consultas por paciente exigem JWT. PATIENT só acessa o próprio `patientId` na consulta por
+ID e o próprio e-mail na consulta por e-mail. DOCTOR e NURSE podem consultar qualquer paciente.

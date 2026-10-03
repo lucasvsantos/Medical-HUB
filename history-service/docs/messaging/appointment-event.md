@@ -29,10 +29,16 @@ O `notification-service` consome a mesma exchange, com a fila `notification.queu
   "eventStatus": "SCHEDULED",
   "occurredAt": "2026-08-30T14:32:10Z",
   "appointmentId": 42,
-  "patientId": 10,
-  "patientName": "Maria Souza",
-  "doctorId": 7,
-  "doctorName": "Dr. João Lima",
+  "patient": {
+    "id": 10,
+    "email": "maria.souza@email.com",
+    "name": "Maria Souza"
+  },
+  "doctor": {
+    "id": 7,
+    "email": "joao.lima@hospital.com",
+    "name": "Dr. João Lima"
+  },
   "appointmentDate": "2026-09-05T09:00:00",
   "description": "Consulta de rotina - cardiologia"
 }
@@ -44,10 +50,12 @@ O `notification-service` consome a mesma exchange, com a fila `notification.queu
 | `eventStatus` | enum (abaixo) | sim | A transição que a consulta sofreu. |
 | `occurredAt` | ISO-8601 com `Z` | sim | Instante do fato no produtor. Ordena a trilha. |
 | `appointmentId` | int64 | sim | Agrupa a trilha. |
-| `patientId` | int64 | sim | |
-| `patientName` | string | não | Aceita `null`/ausente. |
-| `doctorId` | int64 | sim | |
-| `doctorName` | string | não | Aceita `null`/ausente. |
+| `patient.id` | int64 | sim | ID do paciente mantido para rastreabilidade e autorização. |
+| `patient.email` | string | sim | E-mail obtido do `auth-service`; usado pelo notification-service. |
+| `patient.name` | string | sim | Nome obtido do `auth-service`; usado no conteúdo da notificação. |
+| `doctor.id` | int64 | sim | ID do médico mantido para rastreabilidade. |
+| `doctor.email` | string | sim | E-mail obtido do `auth-service`. |
+| `doctor.name` | string | sim | Nome obtido do `auth-service`. |
 | `appointmentDate` | ISO-8601 **sem** timezone | sim | Data e hora de início da consulta **no momento deste evento**. Nunca nula. |
 | `description` | string | não | |
 
@@ -71,6 +79,9 @@ ele grava a que o produtor declarou.
    é ela que dá sentido ao registro. Evento sem esse campo vai para a DLQ.
 3. **Não envie campos fora desta lista.** Campo desconhecido faz a desserialização falhar e a
    mensagem vai para a DLQ.
+
+O `appointment-service` consulta `GET /internal/users/{id}` no `auth-service` usando mTLS antes de
+publicar o evento. Os consumidores gravam os dados de contato como snapshot do momento do evento.
 
 ## Comportamento em falha
 

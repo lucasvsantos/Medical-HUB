@@ -48,7 +48,9 @@ public class SecurityConfig {
                                     && current.isAuthenticated();
                             return new AuthorizationDecision(authenticatedWithBasic);
                         })
+                        .requestMatchers("/users/directory").hasAnyRole("ADMIN", "DOCTOR", "NURSE")
                         .requestMatchers("/users/**").hasRole("ADMIN")
+                        .requestMatchers("/internal/users/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().denyAll())

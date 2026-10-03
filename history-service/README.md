@@ -20,6 +20,9 @@ COMPOSE_PROFILES= docker compose up -d    # só Postgres + RabbitMQ, sem o conta
 
 Os dois `cp` sobrescrevem arquivos que já existam. Para criar só os que faltam, rode `make setup` na raiz do monorepo.
 
+O evento consumido contém `patient` e `doctor`, cada um com `id`, `email` e `name`. O script
+`scripts/publicar-evento.sh` já monta esse formato para publicações manuais.
+
 Não rode `docker compose up -d` sem `COMPOSE_PROFILES=`: o `.env` já traz
 `COMPOSE_PROFILES=apps`, então o comando também sobe o container `history-app`, que
 ocupa a 8081 — e o `./mvnw spring-boot:run` seguinte morre com `Port already in use`.
@@ -82,6 +85,14 @@ curl -s -X POST http://localhost:8081/graphql -H 'content-type: application/json
 ] } }
 ```
 
+A mesma consulta pode ser feita pelo e-mail:
+
+```bash
+curl -s -X POST http://localhost:8081/graphql -H 'content-type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"query":"{ patientHistoryByEmail(patientEmail: \"lucas.oliveira@hospital.com\") { appointmentId patientId patientEmail patientName eventStatus } }"}' \
+  | python3 -m json.tool
+```
+
 **Trilha completa de uma consulta** — todo o histórico, com a data original preservada:
 
 ```bash
@@ -104,7 +115,8 @@ Campos disponíveis e formatos em [`docs/graphql/queries.md`](docs/graphql/queri
 > `-H "Authorization: Bearer $TOKEN"`, com o token obtido em
 > `TOKEN=$(curl -s -X POST http://localhost:8083/auth/login -u maria.santos@hospital.com:Enfermeira@123 | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')`.
 > `patientHistory` aceita DOCTOR, NURSE e PATIENT (só o próprio `patientId`); `appointmentTimeline`
-> aceita DOCTOR e NURSE. A chave pública vem de `security.jwt.public-key` — pela IDE, o padrão é
+> `patientHistoryByEmail` também aceita DOCTOR, NURSE e PATIENT; para PATIENT, o e-mail deve ser o
+> `sub` do token. `appointmentTimeline` aceita DOCTOR e NURSE. A chave pública vem de `security.jwt.public-key` — pela IDE, o padrão é
 > `file:../.jwt-keys/app.sub`, criada ao subir o ambiente pela raiz.
 
 ### 3. Conferir o que foi gravado
@@ -155,8 +167,8 @@ e dois testes de integração ponta a ponta (RabbitMQ real → Postgres real →
 |---|---|
 | `event_id` | do evento — `UNIQUE`, deduplica reentregas do RabbitMQ |
 | `event_status` | a transição: `SCHEDULED`, `RESCHEDULED`, `CANCELLED` ou `COMPLETED` |
-| `appointment_id`, `patient_id`, `doctor_id` | do evento — só IDs, sem relacionamento JPA entre serviços |
-| `patient_name`, `doctor_name` | snapshot opcional do evento (podem ser `NULL`) |
+| `appointment_id`, `patient_id`, `doctor_id` | do evento — IDs mantidos para rastreabilidade e segurança |
+| `patient_email`, `patient_name`, `doctor_email`, `doctor_name` | snapshot de contato obtido do `auth-service` |
 | `appointment_date` | início da consulta neste evento — `NOT NULL`, inclusive em cancelamento |
 | `occurred_at` | quando o evento ocorreu no produtor; ordena a trilha |
 | `recorded_at` | quando o `history-service` gravou |
