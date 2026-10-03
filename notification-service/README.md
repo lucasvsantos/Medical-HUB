@@ -32,7 +32,7 @@ appointment-service --publica AppointmentEvent--> RabbitMQ (notification.queue)
 
 | Método | Rota | Permissão | Descrição |
 |---|---|---|---|
-| GET | `/notifications/patient/{patientId}` | DOCTOR, NURSE, PATIENT (só o próprio) | Lista as notificações de um paciente |
+| GET | `/notifications?patientEmail={email}` | DOCTOR, NURSE, PATIENT (só o próprio) | Lista as notificações de um paciente |
 | GET | `/actuator/health` | pública | Health check |
 
 ## Formato do evento consumido (AppointmentEvent)
@@ -46,10 +46,16 @@ appointment-service --publica AppointmentEvent--> RabbitMQ (notification.queue)
   "eventStatus": "SCHEDULED",
   "occurredAt": "2026-09-12T14:00:00Z",
   "appointmentId": 1,
-  "patientId": 10,
-  "patientName": null,
-  "doctorId": 5,
-  "doctorName": null,
+  "patient": {
+    "id": 10,
+    "email": "maria.souza@email.com",
+    "name": "Maria Souza"
+  },
+  "doctor": {
+    "id": 5,
+    "email": "joao.lima@hospital.com",
+    "name": "Dr. João Lima"
+  },
   "appointmentDate": "2030-09-10T14:30:00",
   "description": "Consulta de rotina"
 }
@@ -84,8 +90,8 @@ enviada ao paciente. Um campo fora do contrato faz a mensagem ir para a `notific
 3. **Envio.** A notificação nasce `PENDING`, é enviada por log (`LEMBRETE ENVIADO`) e fica `SENT`.
    Se o envio falhar, continua `PENDING` e a mensagem vai para a DLQ.
 
-O schema é criado pela migration Flyway `V1__create_notifications.sql`; o Hibernate só valida
-(`ddl-auto=validate`).
+O schema é criado pelas migrations Flyway `V1__create_notifications.sql` e
+`V2__add_patient_contact.sql`; o Hibernate só valida (`ddl-auto=validate`).
 
 ## Rodando junto com os outros serviços
 
@@ -132,18 +138,20 @@ em **Exchanges → `appointment.exchange` → Publish message**, ou via curl:
 curl -u guest:guest -H "content-type:application/json" -X POST \
   -d '{"properties":{"content_type":"application/json"},
        "routing_key":"notification.created",
-       "payload":"{\"eventId\":\"8f14e45f-ceea-467a-9f4b-1d2c3e4f5a6b\",\"eventStatus\":\"SCHEDULED\",\"occurredAt\":\"2026-09-12T14:00:00Z\",\"appointmentId\":1,\"patientId\":10,\"doctorId\":5,\"appointmentDate\":\"2030-09-10T14:30:00\",\"description\":\"Consulta de rotina\"}",
+       "payload":"{\"eventId\":\"8f14e45f-ceea-467a-9f4b-1d2c3e4f5a6b\",\"eventStatus\":\"SCHEDULED\",\"occurredAt\":\"2026-09-12T14:00:00Z\",\"appointmentId\":1,\"patient\":{\"id\":10,\"email\":\"maria.souza@email.com\",\"name\":\"Maria Souza\"},\"doctor\":{\"id\":5,\"email\":\"joao.lima@hospital.com\",\"name\":\"Dr. Joao Lima\"},\"appointmentDate\":\"2030-09-10T14:30:00\",\"description\":\"Consulta de rotina\"}",
        "payload_encoding":"string"}' \
   http://localhost:15672/api/exchanges/%2F/appointment.exchange/publish
 ```
 
 No log da aplicação deve aparecer `Evento de appointment recebido: appointmentId=1,
-eventStatus=SCHEDULED`, seguido de `LEMBRETE ENVIADO - paciente=10, ...`. Depois, confirme pela API:
+eventStatus=SCHEDULED`, seguido de `LEMBRETE ENVIADO - destinatario=maria.souza@email.com, ...`.
+Depois, confirme pela API:
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:8083/auth/login -u maria.santos@hospital.com:Enfermeira@123 \
   | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8082/notifications/patient/10
+curl -G -H "Authorization: Bearer $TOKEN" http://localhost:8082/notifications \
+  --data-urlencode "patientEmail=maria.souza@email.com"
 ```
 
 Deve retornar a notificação com `status: SENT`.
@@ -162,15 +170,16 @@ Requer Docker: os testes de integração usam Testcontainers.
 | `NotificationServiceTest` | mensagem para cada `eventStatus`, `PENDING` → `SENT`, falha no envio, evento nulo e inválido rejeitados, reentrega ignorada, `PENDING` reenviado na mesma linha, colisão entre consumidores |
 | `NotificationServicePersistenceTest` | colisão de `event_id` contra o Postgres real resulta em uma única linha |
 | `NotificationSchemaTest` | a migration cria todas as colunas e a constraint única |
-| `NotificationControllerTest` | `GET /notifications/patient/{patientId}`: 401 sem token, 200 para NURSE e para o PATIENT dono, 403 para outro paciente |
+| `NotificationControllerTest` | `GET /notifications?patientEmail=...`: 401 sem token, 200 para NURSE e para o PATIENT dono, 403 para outro paciente |
 | `NotificationApplicationTests` | o contexto sobe com Postgres e RabbitMQ em containers |
 
 ## Segurança
 
 As rotas exigem um JWT do auth-service em `Authorization: Bearer <token>`; só `/actuator/health`
 é público. A role vem do claim `scope`: DOCTOR e NURSE listam as notificações de qualquer
-paciente, e PATIENT só as próprias — o `patientId` da rota precisa ser o `user_id` do token, senão
-a resposta é `403`. O consumo do RabbitMQ é interno e não usa token.
+paciente, e PATIENT só as próprias — o e-mail consultado precisa ser o `sub` do token, senão a
+resposta é `403`. O `user_id` continua no JWT para as regras de segurança baseadas em ID dos outros
+serviços. O consumo do RabbitMQ é interno e não usa token.
 
 A chave pública vem de `security.jwt.public-key`. No Docker é montada de `.jwt-keys/app.sub`;
 pela IDE, rodando a partir desta pasta, o padrão é `file:../.jwt-keys/app.sub`, criada ao subir o

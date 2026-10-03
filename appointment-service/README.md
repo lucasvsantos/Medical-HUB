@@ -11,6 +11,7 @@ Microsserviço responsável pelo agendamento de consultas do Tech Challenge FIAP
 - Alterar status da consulta.
 - Persistir consultas no PostgreSQL.
 - Publicar `AppointmentEvent` no RabbitMQ para o history-service e, quando habilitado, para o notification-service.
+- Consultar no `auth-service` os dados de contato do paciente e do médico antes de publicar cada evento.
 
 ## Tecnologias
 
@@ -46,6 +47,36 @@ não só o appointment-service. Para parar apenas este serviço, use
 `docker compose stop appointment-app appointment-postgres`.
 
 O serviço usa a porta `8080` por padrão — é o serviço principal do projeto. O history-service usa a `8081`.
+
+## Certificados mTLS
+
+O `appointment-service` consulta o `auth-service` por HTTPS na porta interna `9443`. A chamada usa
+mTLS: este serviço apresenta `.mtls/appointment-client.p12` e confia na CA em
+`.mtls/ca-truststore.p12`.
+
+Gere os certificados antes de subir o Docker ou executar a aplicação pela IDE:
+
+```bash
+make mtls
+```
+
+Ou, diretamente:
+
+```bash
+sh ./scripts/generate-mtls-certs.sh
+```
+
+No PowerShell:
+
+```powershell
+.\scripts\generate-mtls-certs.ps1
+```
+
+No Docker, os arquivos são montados em `/mtls` e o endereço usado é `https://auth-app:9443`. Pela
+IDE, o padrão é `https://localhost:9443`. Em um deploy, monte certificados fornecidos pela CA do
+ambiente e configure `AUTH_SERVICE_URL`, `AUTH_MTLS_KEYSTORE`, `AUTH_MTLS_KEYSTORE_PASSWORD`,
+`AUTH_MTLS_TRUSTSTORE` e `AUTH_MTLS_TRUSTSTORE_PASSWORD`. Não versione nem reutilize os certificados
+gerados localmente.
 
 ## Executar
 
@@ -107,16 +138,24 @@ O payload segue o contrato usado pelo history-service:
   "eventStatus": "SCHEDULED",
   "occurredAt": "2026-09-07T16:00:00Z",
   "appointmentId": 42,
-  "patientId": 10,
-  "patientName": null,
-  "doctorId": 7,
-  "doctorName": null,
+  "patient": {
+    "id": 10,
+    "email": "maria.souza@email.com",
+    "name": "Maria Souza"
+  },
+  "doctor": {
+    "id": 7,
+    "email": "joao.lima@hospital.com",
+    "name": "Dr. João Lima"
+  },
   "appointmentDate": "2030-10-10T09:00:00",
   "description": "Consulta de rotina - cardiologia"
 }
 ```
 
-`patientName` e `doctorName` ficam nulos porque o appointment-service mantém apenas os IDs de entidades pertencentes a outros serviços.
+Os IDs continuam no evento para rastreabilidade. Os nomes e e-mails são obtidos pelo
+`appointment-service` no `auth-service` por meio do endpoint interno `/internal/users/{id}` antes
+da publicação.
 
 ## RabbitMQ
 
