@@ -11,6 +11,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
+import br.com.tech.challenge.authservice.entity.RoleEnum;
 
 @RestController
 @RequestMapping("/users")
@@ -25,6 +26,11 @@ public class UserController {
     @GetMapping
     public List<UserResponse> findAll() {
         return userService.findAll();
+    }
+
+    @GetMapping("/directory")
+    public List<UserResponse> findDirectoryByRole(@RequestParam RoleEnum role) {
+        return userService.findDirectoryByRole(role);
     }
 
     @GetMapping("/{id}")

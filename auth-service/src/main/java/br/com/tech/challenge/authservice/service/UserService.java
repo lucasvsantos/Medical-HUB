@@ -39,6 +39,11 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public List<UserResponse> findDirectoryByRole(RoleEnum role) {
+        return userRepository.findAllByRoleName(role).stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
     public UserResponse findById(Long id) {
         return toResponse(findUser(id));
     }
