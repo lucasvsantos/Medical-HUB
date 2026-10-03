@@ -34,8 +34,12 @@ services:
       SPRING_PROFILES_ACTIVE: dev          # insere os usuarios de exemplo
       JWT_PUBLIC_KEY: file:/keys/app.sub
       JWT_PRIVATE_KEY: file:/keys/app.key
+      MTLS_KEYSTORE: file:/mtls/auth-server.p12
+      MTLS_TRUSTSTORE: file:/mtls/ca-truststore.p12
     volumes:
       - ../.jwt-keys:/keys:ro
+      - ../.mtls/auth-server.p12:/mtls/auth-server.p12:ro
+      - ../.mtls/ca-truststore.p12:/mtls/ca-truststore.p12:ro
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
     networks:

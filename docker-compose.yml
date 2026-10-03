@@ -10,3 +10,9 @@ include:
     env_file: ./notification-service/.env
   - path: ./auth-service/docker-compose.yml
     env_file: ./auth-service/.env
+
+services:
+  appointment-app:
+    depends_on:
+      auth-app:
+        condition: service_healthy
