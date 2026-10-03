@@ -49,11 +49,17 @@ public class MedicalHistory {
     @Column(name = "patient_id", nullable = false, updatable = false)
     private Long patientId;
 
+    @Column(name = "patient_email", updatable = false)
+    private String patientEmail;
+
     @Column(name = "patient_name", updatable = false)
     private String patientName;
 
     @Column(name = "doctor_id", nullable = false, updatable = false)
     private Long doctorId;
+
+    @Column(name = "doctor_email", updatable = false)
+    private String doctorEmail;
 
     @Column(name = "doctor_name", updatable = false)
     private String doctorName;
