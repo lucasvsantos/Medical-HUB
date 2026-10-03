@@ -24,6 +24,16 @@ spring:
 server:
   port: ${SERVER_PORT:8083}
 
+app:
+  mtls:
+    enabled: ${MTLS_ENABLED:true}
+    port: ${MTLS_SERVER_PORT:9443}
+    key-store: ${MTLS_KEYSTORE:file:../.mtls/auth-server.p12}
+    key-store-password: ${MTLS_KEYSTORE_PASSWORD:changeit}
+    trust-store: ${MTLS_TRUSTSTORE:file:../.mtls/ca-truststore.p12}
+    trust-store-password: ${MTLS_TRUSTSTORE_PASSWORD:changeit}
+    client-common-name: ${MTLS_CLIENT_COMMON_NAME:appointment-service}
+
 spring.web.error.include-stacktrace: never
 
 security:
